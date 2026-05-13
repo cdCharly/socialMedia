@@ -2,3 +2,10 @@ lancer le serveur puis dans un nouveau terminal écrire
 nc localhost 8080
 
 le serveur accept le client
+client ecris LIST ca donne la liste des messages
+
+client ecris MSG: xxx
+ca met xxx dans la bdd
+
+après chaque message envoyé faire le list automatiquement pour etre a jour
+il faut que le list se fasse pas TOUT les client connectés
