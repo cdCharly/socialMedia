@@ -127,6 +127,31 @@ void selectAllTable(sqlite3* db, const string tableName) {
     sqlite3_free(errMsg);
 }
 
+// sert à couper le message en commencant par indStart jusqua msg.length -1
+string parseStr(int indStart, char* msg) {
+    string m = static_cast<string>(msg);
+    if (m.empty()) return ""; // si le message est vide on renvoie vide
+    else {
+        return m.substr(indStart, m.length() - indStart - 1); // on enleve le debut et le \n à la fin
+    }
+}
+
+// inserer un message dans Messages en parametres
+void insertIntoMessagesTable(sqlite3* db, string msg) {
+    char* errMsg = nullptr;
+    string requete = "INSERT INTO Messages (contenu) VALUES ('"+msg+"');";
+    sqlite3_exec(db, requete.c_str(), nullptr, nullptr, &errMsg);
+
+    if (errMsg != nullptr) {
+        cout << "probleme insertion messages " << errMsg << endl;
+        sqlite3_free(errMsg);
+    }
+    else {
+        cout << "insertion message succès" << endl;
+        sqlite3_free(errMsg);
+    }
+}
+
 int main() {
 
     // ----------- partie base de données -----------
@@ -179,7 +204,6 @@ int main() {
     selectAllTable(db, "Messages");
 
     */
-
 
 
     // ----------- partie réseau -----------
@@ -259,14 +283,20 @@ int main() {
             cout << buffer << " | recep succès" << endl;
 
             // verif si le message est LIST alors on donne la liste de tout les messages
-            const char* lister = "LIST";      // commande client pour avoir la liste des messages
+            const char* lister = "LIST";        // commande client pour avoir la liste des messages
+            const char* ecrire = "MSG:";        // commande client pour ecrire un message
 
-            if (strncmp(buffer, lister, 4) == 0) {          // on compare les 4 premier char du message
+            if (strncmp(buffer, lister, 4) == 0) {          // on compare les 4 premier char du message avec le LIST
 
                 sqlite3_exec(db, "SELECT contenu, date FROM Messages;", callback_affichageClient, &clientSocket, &errMsgUserDb); // mettre le resultat dans le socket client avec le callback
                 string fin = "---- fin des messages -----";
                 send(clientSocket, fin.c_str(), strlen(fin.c_str()), 0);        // renvoyer le message de fin
 
+            }
+
+            if (strncmp(buffer, ecrire, 4) == 0) {          // on compare avec le MSG:
+                string messageClient = parseStr(4, buffer);
+                insertIntoMessagesTable(db, messageClient);     // on met le message dans la db
             }
 
 
