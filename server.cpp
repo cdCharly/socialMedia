@@ -2,6 +2,9 @@
 // Created by Charly CATIN--RICO on 13/05/2026.
 //
 #include <iostream>
+#include <sys/socket.h> // Pour les fonctions de base des sockets
+#include <netinet/in.h> // Pour les structures d'adresses internet
+#include <unistd.h>     // Pour la fonction close() (fermer le socket)
 #include <sqlite3.h>
 using namespace std;
 
@@ -104,6 +107,8 @@ void selectAllTable(sqlite3* db, const string tableName) {
 }
 
 int main() {
+
+    // ----------- partie base de données
     sqlite3* db;
     char* errMsgUserDb = nullptr;
     char* errMsgMessagesDb = nullptr;
@@ -145,12 +150,62 @@ int main() {
     insertIntoUserTable(db);
     insertIntoUserTable(db);
     selectAllTable(db, "User");
-    */
+
 
     insertIntoUserTable(db);
     insertIntoMessagesTable(db);
     selectAllTable(db, "User");
     selectAllTable(db, "Messages");
+
+    */
+
+
+
+    // ----------- partie réseau
+    // af inet correspond à un ipv4
+    // sock stream -> protocole tcp
+
+    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (serverSocket < 0) {
+        cout << "Erreur avec le socket" << endl;
+        return -1; // stopper le serveur car pas de socket pour se connecter
+    }
+
+    cout << "socket crée" << endl;
+
+
+
+
+
+
+    sockaddr_in serverAddr;                     // adresse du serveur
+    serverAddr.sin_family = AF_INET;            // meme type que le serversocket
+    serverAddr.sin_addr.s_addr = INADDR_ANY;    // ip d'ecoute
+    serverAddr.sin_port = htons(8080);          // choix port 8080
+
+
+    // lier le socket à la connexion
+    int bindCheck = ::bind(serverSocket, reinterpret_cast<struct sockaddr *>(&serverAddr), sizeof(serverAddr));    // le :: c'est pour le namespace il y avait une erreur
+
+    if (bindCheck < 0) {
+        cout << "Erreur avec le bind" << endl;
+        return -1;  // stopper le serveur car on ne peut pas se connecter
+    }
+    cout << "socket binder succès" << endl;
+
+
+    // ecouter le réseau, magic number 5 pour 5 clients max en écoute
+    listen(serverSocket, 5);
+
+
+
+
+
+
+
+
+
 
 
 
