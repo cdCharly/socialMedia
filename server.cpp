@@ -40,14 +40,45 @@ void insertIntoUserTable(sqlite3 *db){
 
     // conclusion
     if (errMsg != nullptr) {
-        cout << "probleme insertion" << errMsg << endl;
+        cout << "probleme insertion user" << errMsg << endl;
+        sqlite3_free(errMsg);
     }
     else {
         cout << "insertion finie" << endl;
+        sqlite3_free(errMsg);
     }
 
     // delete le ptr pour vider la memoire
-    sqlite3_free(errMsg);
+    //sqlite3_free(errMsg);
+}
+
+
+void insertIntoMessagesTable(sqlite3 *db) {
+
+    // variables
+    string requete, contenu, idUser = "";
+    char*errMsg = nullptr;
+
+    // reception infos
+    cout << "Ecrire message" << endl;
+    cin >> contenu;
+    cout << "ecrire idUser (int)" << endl;
+    cin >> idUser;
+
+    // construction requete
+    requete = "INSERT INTO Messages (contenu, userID) VALUES ('" + contenu +"', '" + idUser + "');";
+    sqlite3_exec(db, requete.c_str(), callback_affichage, nullptr, &errMsg);
+
+    // conclusion
+    if (errMsg != nullptr) {
+        cout << "probleme insertion messages " << errMsg << endl;
+        sqlite3_free(errMsg);
+    }
+    else {
+        cout << "insertion finie " << endl;
+        sqlite3_free(errMsg);
+    }
+
 }
 
 
@@ -62,10 +93,10 @@ void selectAllTable(sqlite3* db, const string tableName) {
 
     // conclusion
     if (errMsg != nullptr) {
-        cout << "probleme lecture" << errMsg << endl;
+        cout << "probleme lecture " << errMsg << endl;
     }
     else {
-        cout << "lecture finie" << endl;
+        cout << "lecture finie " << endl;
     }
 
     // delete le ptr pour vider la memoire
@@ -105,20 +136,21 @@ int main() {
                     "contenu TEXT, "
                     "date DATETIME DEFAULT CURRENT_TIMESTAMP, "
                     "userID INTEGER, "
-                    "FOREIGN KEY(userID) REFERENCES User(id)",
+                    "FOREIGN KEY(userID) REFERENCES User(idUser))",
         nullptr, nullptr, &errMsgMessagesDb);
 
 
-    // insertion d'un valeur
+    // insertion de valeurs
     /*
-    insertIntoUserTable(db);
     insertIntoUserTable(db);
     insertIntoUserTable(db);
     selectAllTable(db, "User");
     */
 
-
-
+    insertIntoUserTable(db);
+    insertIntoMessagesTable(db);
+    selectAllTable(db, "User");
+    selectAllTable(db, "Messages");
 
 
 
