@@ -294,7 +294,7 @@ int main() {
 
             }
 
-            if (strncmp(buffer, ecrire, 4) == 0) {          // on compare avec le MSG:
+            else if (strncmp(buffer, ecrire, 4) == 0) {          // on compare avec le MSG:
                 string messageClient = parseStr(4, buffer);
                 insertIntoMessagesTable(db, messageClient);     // on met le message dans la db
             }

@@ -9,3 +9,6 @@ ca met xxx dans la bdd
 
 après chaque message envoyé faire le list automatiquement pour etre a jour
 il faut que le list se fasse pas TOUT les client connectés
+
+utiliser multithread pour que plusieurs instances clients peuvent communiquer avec le serveur en meme temps car la
+c'est en one thread donc c'est un message par un message
