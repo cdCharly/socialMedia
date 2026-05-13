@@ -6,6 +6,7 @@
 #include <netinet/in.h> // Pour les structures d'adresses internet
 #include <unistd.h>     // Pour la fonction close() (fermer le socket)
 #include <sqlite3.h>
+#include <cstring>
 using namespace std;
 
 
@@ -208,37 +209,43 @@ int main() {
     sockaddr_in clientAddr;
     socklen_t clientAddrLen = sizeof(clientAddr);       // taille de l'adresse automatique
 
-    // creation du socket du client le prog se met en pause le temps que les infos parviennent
-    int clientSocket = accept(serverSocket, reinterpret_cast<struct sockaddr *>(&clientAddr), &clientAddrLen);
 
-    if (clientSocket < 0) {
-        cout << "Erreur avec le socket client" << endl;
-        return -1;
+    // boucle infinie pour que le serveur ne s'arrete pas
+    while (true) {
+
+        // creation du socket du client le prog se met en pause le temps que les infos parviennent
+        int clientSocket = accept(serverSocket, reinterpret_cast<struct sockaddr *>(&clientAddr), &clientAddrLen);
+
+        if (clientSocket < 0) {
+            cout << "Erreur avec le socket client" << endl;
+            return -1;
+        }
+        cout << "accept client succès" << endl;
+
+
+        // on recupere le message via un buffer
+        char buffer[1024]; // 1024 octets de place pour ecrire
+        memset(buffer, 0, sizeof(buffer));
+
+        // reception
+        int octetsRecus = recv(clientSocket, buffer, 1024, 0);
+
+        // verif reception
+        if (octetsRecus <= 0) {
+            cout << "Erreur avec le recv" << endl;
+        }
+
+        if (octetsRecus > 0) {
+            cout << buffer << " | recep succès" << endl;
+
+            send(clientSocket, buffer, octetsRecus, 0); // on renvoie ce que le client à envoyer
+            close(clientSocket);                        // on ferme la connexion avec le client
+        }
+
+
+
+
+
     }
-    cout << "accept client succès" << endl;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // fermer la db
-    sqlite3_close(db);
-
     return 0;
 }
