@@ -20,6 +20,26 @@ static int callback_affichage(void* data, int argc, char** argv, char** azColNam
 }
 
 
+static int callback_affichageClient(void* data, int argc, char** argv, char** azColName) {
+    // 1. On récupère le socket client
+    int clientSock = *(int*)data;
+
+    // 2. On prépare une ligne de texte pour ce message
+    string reponse = "";
+    for (int i = 0; i < argc; i++) {
+        reponse += azColName[i];
+        reponse += ": ";
+        reponse += (argv[i] ? argv[i] : "NULL");
+        reponse += " | ";
+    }
+    reponse += "\n"; // Très important pour la lisibilité chez le client
+
+    // 3. ON ENVOIE AU CLIENT au lieu de faire un cout
+    send(clientSock, reponse.c_str(), reponse.length(), 0);
+
+    return 0; // On dit à SQLite de continuer pour la ligne suivante
+}
+
 
 // inserer dans une table
 void insertIntoUserTable(sqlite3 *db){
@@ -238,14 +258,20 @@ int main() {
         if (octetsRecus > 0) {
             cout << buffer << " | recep succès" << endl;
 
-            send(clientSocket, buffer, octetsRecus, 0); // on renvoie ce que le client à envoyer
+            // verif si le message est LIST alors on donne la liste de tout les messages
+            const char* lister = "LIST";      // commande client pour avoir la liste des messages
+
+            if (strncmp(buffer, lister, 4) == 0) {          // on compare les 4 premier char du message
+
+                sqlite3_exec(db, "SELECT contenu, date FROM Messages;", callback_affichageClient, &clientSocket, &errMsgUserDb); // mettre le resultat dans le socket client avec le callback
+                string fin = "---- fin des messages -----";
+                send(clientSocket, fin.c_str(), strlen(fin.c_str()), 0);        // renvoyer le message de fin
+
+            }
+
+
             close(clientSocket);                        // on ferme la connexion avec le client
         }
-
-
-
-
-
     }
     return 0;
 }
