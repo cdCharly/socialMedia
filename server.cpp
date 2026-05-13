@@ -108,7 +108,7 @@ void selectAllTable(sqlite3* db, const string tableName) {
 
 int main() {
 
-    // ----------- partie base de données
+    // ----------- partie base de données -----------
     sqlite3* db;
     char* errMsgUserDb = nullptr;
     char* errMsgMessagesDb = nullptr;
@@ -122,7 +122,7 @@ int main() {
 
     } else {
         // ok
-        std::cout << "Base de données ouverte avec succès !" << std::endl;
+        std::cout << "Base de données ouverte succès" << std::endl;
     }
 
 
@@ -161,22 +161,19 @@ int main() {
 
 
 
-    // ----------- partie réseau
+    // ----------- partie réseau -----------
     // af inet correspond à un ipv4
     // sock stream -> protocole tcp
 
     int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
+    // verif creation socket réseau
     if (serverSocket < 0) {
         cout << "Erreur avec le socket" << endl;
         return -1; // stopper le serveur car pas de socket pour se connecter
     }
 
-    cout << "socket crée" << endl;
-
-
-
-
+    cout << "socket crée succès" << endl;
 
 
     sockaddr_in serverAddr;                     // adresse du serveur
@@ -188,6 +185,7 @@ int main() {
     // lier le socket à la connexion
     int bindCheck = ::bind(serverSocket, reinterpret_cast<struct sockaddr *>(&serverAddr), sizeof(serverAddr));    // le :: c'est pour le namespace il y avait une erreur
 
+    // verif de la création du lien
     if (bindCheck < 0) {
         cout << "Erreur avec le bind" << endl;
         return -1;  // stopper le serveur car on ne peut pas se connecter
@@ -196,7 +194,31 @@ int main() {
 
 
     // ecouter le réseau, magic number 5 pour 5 clients max en écoute
-    listen(serverSocket, 5);
+    int listenCheck = listen(serverSocket, 5);
+
+    // check pour init de l'ecoute des clients
+    if (listenCheck < 0) {
+        cout << "Erreur avec le listen" << endl;
+        return -1;
+    }
+    cout << "listen en service succès" << endl;
+
+
+    // adresse du client pour sauvegarder en ram ses infos réseau
+    sockaddr_in clientAddr;
+    socklen_t clientAddrLen = sizeof(clientAddr);       // taille de l'adresse automatique
+
+    // creation du socket du client le prog se met en pause le temps que les infos parviennent
+    int clientSocket = accept(serverSocket, reinterpret_cast<struct sockaddr *>(&clientAddr), &clientAddrLen);
+
+    if (clientSocket < 0) {
+        cout << "Erreur avec le socket client" << endl;
+        return -1;
+    }
+    cout << "accept client succès" << endl;
+
+
+
 
 
 

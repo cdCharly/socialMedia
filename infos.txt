@@ -1,0 +1,4 @@
+lancer le serveur puis dans un nouveau terminal écrire
+nc localhost 8080
+
+le serveur accept le client
