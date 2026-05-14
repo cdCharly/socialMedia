@@ -8,6 +8,7 @@
 #include <sqlite3.h>
 #include <cstring>
 #include <thread>
+#include <cstdlib> //pour utiliser atoi()
 using namespace std;
 
 
@@ -39,6 +40,23 @@ static int callback_affichageClient(void* data, int argc, char** argv, char** az
     send(clientSock, reponse.c_str(), reponse.length(), 0);
 
     return 0; // On dit à SQLite de continuer pour la ligne suivante
+}
+
+
+
+static int callback_login(void* data, int argc, char** argv, char** azColName) {
+    // Sécurité : on vérifie qu'on a bien reçu au moins une colonne (l'idUser)
+    if (argc > 0 && argv[0] != nullptr) {
+
+        // 1. On transforme le void* en un pointeur d'entier (int*)
+        int* pointeurId = (int*)data;
+
+        // 2. On convertit le texte renvoyé par SQLite (argv[0]) en vrai entier (int)
+        // et on le stocke à l'adresse mémoire de notre pointeur
+        *pointeurId = atoi(argv[0]);
+    }
+
+    return 0;
 }
 
 
@@ -129,13 +147,15 @@ void selectAllTable(sqlite3* db, const string tableName) {
 }
 
 // sert à couper le message en commencant par indStart jusqua msg.length -1
-string parseStr(int indStart, char* msg) {
+string parseStr(int indStart, int indEnd,char* msg) {
     string m = static_cast<string>(msg);
     if (m.empty()) return ""; // si le message est vide on renvoie vide
     else {
-        return m.substr(indStart, m.length() - indStart - 1); // on enleve le debut et le \n à la fin
+        return m.substr(indStart, indEnd); // on enleve le debut et le \n à la fin
     }
 }
+
+// m.substr(indStart, m.length() - indStart - 1)
 
 // inserer un message dans Messages en parametres
 void insertIntoMessagesTable(sqlite3* db, string msg) {
@@ -154,15 +174,13 @@ void insertIntoMessagesTable(sqlite3* db, string msg) {
 }
 
 
-
 void gererClient(int clientSocket, sqlite3* db) {
-    // 1. Mettre le char buffer[1024] ici
-    // 2. Faire le recv()
-    // 3. Faire tes conditions (LIST, MSG:)
-    // 4. Faire tes sqlite3_exec
-    // 5. Faire le close(clientSocket) à la toute fin
+
+
+    int idUser = -1; // -1 le client est pas co
 
     char* errMsgMessagesDb = nullptr;
+    char* errMsgUser = nullptr;
 
     // on recupere le message via un buffer
     char buffer[1024]; // 1024 octets de place pour ecrire
@@ -172,6 +190,7 @@ void gererClient(int clientSocket, sqlite3* db) {
     // verif si le message est LIST alors on donne la liste de tout les messages
     const char* lister = "LIST";        // commande client pour avoir la liste des messages
     const char* ecrire = "MSG:";        // commande client pour ecrire un message
+    const char* login = "LOGIN:";
 
     if (octRecus > 0) {
 
@@ -185,8 +204,45 @@ void gererClient(int clientSocket, sqlite3* db) {
 
         // envoyer un message dans la db
         if (strncmp(buffer, ecrire, 4) == 0) {
-            string messageClient = parseStr(4, buffer);
+            string m = reinterpret_cast<const char*>(buffer);
+            string messageClient = parseStr(4, m.length() - 1 , buffer);
             insertIntoMessagesTable(db, messageClient);     // on met le message dans la db
+        }
+
+        if (strncmp(buffer, login, 4) == 0) {
+            string m = reinterpret_cast<const char*>(buffer);
+
+            size_t premierSlice = m.find(':');
+            size_t deuxiemeSlice = m.find(':', premierSlice + 1);   // à partir du premier slice char après
+
+            if (deuxiemeSlice != std::string::npos) {
+
+                // recuperer nom
+                int indDebutNom = premierSlice + 1;
+                int longeurNom = deuxiemeSlice - indDebutNom;
+                string nom = m.substr(indDebutNom, longeurNom);
+
+                // recuperer mdp
+                int indDebutMdp = deuxiemeSlice + 1;
+                int longeurMdp = m.length() - indDebutMdp - 1;
+                string mdp = m.substr(indDebutMdp, longeurMdp);
+
+                cout << "login " << nom << " / " << mdp << endl;
+
+
+                // partie verif db
+                string requete = "SELECT idUser FROM User WHERE name = '" + nom + "' AND PASSWORD = '" + mdp + "' ;";
+                sqlite3_exec(db, requete.c_str(), callback_login, &idUser, &errMsgUser);
+
+
+            }
+
+            else {
+                string erreurFormat = "Erreur: Format attendu LOGIN:nom:password\n";
+                send(clientSocket, erreurFormat.c_str(), erreurFormat.length(), 0);
+            }
+
+
         }
     }
 
@@ -283,7 +339,7 @@ int main() {
     sockaddr_in clientAddr;
     socklen_t clientAddrLen = sizeof(clientAddr);       // taille de l'adresse automatique
 
-
+    selectAllTable(db, "User");
     // boucle infinie pour que le serveur ne s'arrete pas
     while (true) {
 
