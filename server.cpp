@@ -199,7 +199,7 @@ void gererClient(int clientSocket, sqlite3* db) {
             if (strncmp(buffer, lister, 4) == 0) {
 
                 sqlite3_exec(db, "SELECT contenu, date FROM Messages;", callback_affichageClient, &clientSocket, &errMsgMessagesDb); // mettre le resultat dans le socket client avec le callback
-                string fin = "---- fin des messages -----";
+                string fin = "---- fin des messages -----\n";
                 send(clientSocket, fin.c_str(), strlen(fin.c_str()), 0);        // renvoyer le message de fin
             }
 
