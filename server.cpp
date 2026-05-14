@@ -182,72 +182,74 @@ void gererClient(int clientSocket, sqlite3* db) {
     char* errMsgMessagesDb = nullptr;
     char* errMsgUser = nullptr;
 
-    // on recupere le message via un buffer
-    char buffer[1024]; // 1024 octets de place pour ecrire
-    memset(buffer, 0, sizeof(buffer));
-    int octRecus = recv(clientSocket, buffer, sizeof(buffer), 0);
+    while (true) {
+        // on recupere le message via un buffer
+        char buffer[1024]; // 1024 octets de place pour ecrire
+        memset(buffer, 0, sizeof(buffer));
+        int octRecus = recv(clientSocket, buffer, sizeof(buffer), 0);
 
-    // verif si le message est LIST alors on donne la liste de tout les messages
-    const char* lister = "LIST";        // commande client pour avoir la liste des messages
-    const char* ecrire = "MSG:";        // commande client pour ecrire un message
-    const char* login = "LOGIN:";
+        // verif si le message est LIST alors on donne la liste de tout les messages
+        const char* lister = "LIST";        // commande client pour avoir la liste des messages
+        const char* ecrire = "MSG:";        // commande client pour ecrire un message
+        const char* login = "LOGIN:";
 
-    if (octRecus > 0) {
+        if (octRecus > 0) {
 
-        // recuperer la liste des messages
-        if (strncmp(buffer, lister, 4) == 0) {
+            // recuperer la liste des messages
+            if (strncmp(buffer, lister, 4) == 0) {
 
-            sqlite3_exec(db, "SELECT contenu, date FROM Messages;", callback_affichageClient, &clientSocket, &errMsgMessagesDb); // mettre le resultat dans le socket client avec le callback
-            string fin = "---- fin des messages -----";
-            send(clientSocket, fin.c_str(), strlen(fin.c_str()), 0);        // renvoyer le message de fin
-        }
+                sqlite3_exec(db, "SELECT contenu, date FROM Messages;", callback_affichageClient, &clientSocket, &errMsgMessagesDb); // mettre le resultat dans le socket client avec le callback
+                string fin = "---- fin des messages -----";
+                send(clientSocket, fin.c_str(), strlen(fin.c_str()), 0);        // renvoyer le message de fin
+            }
 
-        // envoyer un message dans la db
-        if (strncmp(buffer, ecrire, 4) == 0) {
-            string m = reinterpret_cast<const char*>(buffer);
-            string messageClient = parseStr(4, m.length() - 1 , buffer);
-            insertIntoMessagesTable(db, messageClient);     // on met le message dans la db
-        }
+            // envoyer un message dans la db
+            if (strncmp(buffer, ecrire, 4) == 0) {
+                string m = reinterpret_cast<const char*>(buffer);
+                string messageClient = parseStr(4, m.length() - 1 , buffer);
+                insertIntoMessagesTable(db, messageClient);     // on met le message dans la db
+            }
 
-        if (strncmp(buffer, login, 4) == 0) {
-            string m = reinterpret_cast<const char*>(buffer);
+            if (strncmp(buffer, login, 4) == 0) {
+                string m = reinterpret_cast<const char*>(buffer);
 
-            size_t premierSlice = m.find(':');
-            size_t deuxiemeSlice = m.find(':', premierSlice + 1);   // à partir du premier slice char après
+                size_t premierSlice = m.find(':');
+                size_t deuxiemeSlice = m.find(':', premierSlice + 1);   // à partir du premier slice char après
 
-            if (deuxiemeSlice != std::string::npos) {
+                if (deuxiemeSlice != std::string::npos) {
 
-                // recuperer nom
-                int indDebutNom = premierSlice + 1;
-                int longeurNom = deuxiemeSlice - indDebutNom;
-                string nom = m.substr(indDebutNom, longeurNom);
+                    // recuperer nom
+                    int indDebutNom = premierSlice + 1;
+                    int longeurNom = deuxiemeSlice - indDebutNom;
+                    string nom = m.substr(indDebutNom, longeurNom);
 
-                // recuperer mdp
-                int indDebutMdp = deuxiemeSlice + 1;
-                int longeurMdp = m.length() - indDebutMdp - 1;
-                string mdp = m.substr(indDebutMdp, longeurMdp);
+                    // recuperer mdp
+                    int indDebutMdp = deuxiemeSlice + 1;
+                    int longeurMdp = m.length() - indDebutMdp - 1;
+                    string mdp = m.substr(indDebutMdp, longeurMdp);
 
-                cout << "login " << nom << " / " << mdp << endl;
+                    cout << "login " << nom << " / " << mdp << endl;
 
 
-                // partie verif db
-                string requete = "SELECT idUser FROM User WHERE name = '" + nom + "' AND PASSWORD = '" + mdp + "' ;";
-                sqlite3_exec(db, requete.c_str(), callback_login, &idUser, &errMsgUser);
+                    // partie verif db
+                    string requete = "SELECT idUser FROM User WHERE name = '" + nom + "' AND PASSWORD = '" + mdp + "' ;";
+                    sqlite3_exec(db, requete.c_str(), callback_login, &idUser, &errMsgUser);
+
+
+                }
+
+                else {
+                    string erreurFormat = "Erreur: Format attendu LOGIN:nom:password\n";
+                    send(clientSocket, erreurFormat.c_str(), erreurFormat.length(), 0);
+                }
 
 
             }
-
-            else {
-                string erreurFormat = "Erreur: Format attendu LOGIN:nom:password\n";
-                send(clientSocket, erreurFormat.c_str(), erreurFormat.length(), 0);
-            }
-
-
         }
-    }
 
-    else {
-        cout << "ecriture probleme" << endl;
+        else {
+            cout << "ecriture probleme" << endl;
+        }
     }
     close(clientSocket);
 }
