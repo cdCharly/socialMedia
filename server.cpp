@@ -7,6 +7,7 @@
 #include <unistd.h>     // Pour la fonction close() (fermer le socket)
 #include <sqlite3.h>
 #include <cstring>
+#include <thread>
 using namespace std;
 
 
@@ -152,6 +153,50 @@ void insertIntoMessagesTable(sqlite3* db, string msg) {
     }
 }
 
+
+
+void gererClient(int clientSocket, sqlite3* db) {
+    // 1. Mettre le char buffer[1024] ici
+    // 2. Faire le recv()
+    // 3. Faire tes conditions (LIST, MSG:)
+    // 4. Faire tes sqlite3_exec
+    // 5. Faire le close(clientSocket) à la toute fin
+
+    char* errMsgMessagesDb = nullptr;
+
+    // on recupere le message via un buffer
+    char buffer[1024]; // 1024 octets de place pour ecrire
+    memset(buffer, 0, sizeof(buffer));
+    int octRecus = recv(clientSocket, buffer, sizeof(buffer), 0);
+
+    // verif si le message est LIST alors on donne la liste de tout les messages
+    const char* lister = "LIST";        // commande client pour avoir la liste des messages
+    const char* ecrire = "MSG:";        // commande client pour ecrire un message
+
+    if (octRecus > 0) {
+
+        // recuperer la liste des messages
+        if (strncmp(buffer, lister, 4) == 0) {
+
+            sqlite3_exec(db, "SELECT contenu, date FROM Messages;", callback_affichageClient, &clientSocket, &errMsgMessagesDb); // mettre le resultat dans le socket client avec le callback
+            string fin = "---- fin des messages -----";
+            send(clientSocket, fin.c_str(), strlen(fin.c_str()), 0);        // renvoyer le message de fin
+        }
+
+        // envoyer un message dans la db
+        if (strncmp(buffer, ecrire, 4) == 0) {
+            string messageClient = parseStr(4, buffer);
+            insertIntoMessagesTable(db, messageClient);     // on met le message dans la db
+        }
+    }
+
+    else {
+        cout << "ecriture probleme" << endl;
+    }
+    close(clientSocket);
+}
+
+
 int main() {
 
     // ----------- partie base de données -----------
@@ -189,21 +234,6 @@ int main() {
                     "userID INTEGER, "
                     "FOREIGN KEY(userID) REFERENCES User(idUser))",
         nullptr, nullptr, &errMsgMessagesDb);
-
-
-    // insertion de valeurs
-    /*
-    insertIntoUserTable(db);
-    insertIntoUserTable(db);
-    selectAllTable(db, "User");
-
-
-    insertIntoUserTable(db);
-    insertIntoMessagesTable(db);
-    selectAllTable(db, "User");
-    selectAllTable(db, "Messages");
-
-    */
 
 
     // ----------- partie réseau -----------
@@ -262,46 +292,17 @@ int main() {
 
         if (clientSocket < 0) {
             cout << "Erreur avec le socket client" << endl;
-            return -1;
+            continue;   //  pas de return pour pas faire crash à cause d'un client
         }
+
         cout << "accept client succès" << endl;
 
+        // lancer le threading
+        std::thread threadClient(gererClient,clientSocket , db);
+        threadClient.detach();  // detacher le client pour liberer la place
 
-        // on recupere le message via un buffer
-        char buffer[1024]; // 1024 octets de place pour ecrire
-        memset(buffer, 0, sizeof(buffer));
 
-        // reception
-        int octetsRecus = recv(clientSocket, buffer, 1024, 0);
-
-        // verif reception
-        if (octetsRecus <= 0) {
-            cout << "Erreur avec le recv" << endl;
         }
 
-        if (octetsRecus > 0) {
-            cout << buffer << " | recep succès" << endl;
-
-            // verif si le message est LIST alors on donne la liste de tout les messages
-            const char* lister = "LIST";        // commande client pour avoir la liste des messages
-            const char* ecrire = "MSG:";        // commande client pour ecrire un message
-
-            if (strncmp(buffer, lister, 4) == 0) {          // on compare les 4 premier char du message avec le LIST
-
-                sqlite3_exec(db, "SELECT contenu, date FROM Messages;", callback_affichageClient, &clientSocket, &errMsgUserDb); // mettre le resultat dans le socket client avec le callback
-                string fin = "---- fin des messages -----";
-                send(clientSocket, fin.c_str(), strlen(fin.c_str()), 0);        // renvoyer le message de fin
-
-            }
-
-            else if (strncmp(buffer, ecrire, 4) == 0) {          // on compare avec le MSG:
-                string messageClient = parseStr(4, buffer);
-                insertIntoMessagesTable(db, messageClient);     // on met le message dans la db
-            }
-
-
-            close(clientSocket);                        // on ferme la connexion avec le client
-        }
-    }
     return 0;
-}
+    }
