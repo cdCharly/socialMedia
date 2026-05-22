@@ -18,7 +18,7 @@ void listenServer(int socket) {
 
         int bytesReceived = recv(socket, buffer, sizeof(buffer), 0);
 
-        if (bytesReceived > 0) {
+        if (bytesReceived < 0) {
             std::cout << "\n server disconnection \n" << std::endl;
             break;  // sortir de la boucle
         }
@@ -58,6 +58,10 @@ int main() {
 
     std::cout << "Connection established succes" << std::endl;
     //return 0; // debug
+
+    // infos user
+    std::cout << "type QUIT to quit the clientApp" << std::endl;
+
     while (true) {
         std::string message;
         std::getline(std::cin, message);
@@ -70,5 +74,7 @@ int main() {
         send(clientSock, message.c_str(), message.length(), 0); // envoie des donnes par le socket du client
 
     }
+
+    // 0 -> succes
     return 0;
 }
