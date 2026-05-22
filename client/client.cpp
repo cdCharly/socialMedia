@@ -13,20 +13,18 @@
 
 void listenServer(int socket) {
     while (true) {
+
         char buffer[1024];
         memset(buffer, 0, sizeof(buffer));
 
         int bytesReceived = recv(socket, buffer, sizeof(buffer), 0);
-
         if (bytesReceived < 0) {
             std::cout << "\n server disconnection \n" << std::endl;
             break;  // sortir de la boucle
         }
-
         std::cout << buffer << std::endl;   // afficher la reponse du server
     }
 }
-
 
 
 // if -1 error
@@ -55,14 +53,17 @@ int main() {
     std::thread listenThread(listenServer, clientSock);
     listenThread.detach();  // se detacher du thread principal
 
-
     std::cout << "Connection established succes" << std::endl;
     //return 0; // debug
 
     // infos user
     std::cout << "type QUIT to quit the clientApp" << std::endl;
+    std::cout << "type LOG:lastname:password to log in" << std::endl;
+    std::cout << "type REG:name:lastname:password to register" << std::endl;
+    std::cout << "type MSG:your message to write a message on the server" << std::endl;
 
     while (true) {
+        // std::string autoLST = "LST:";
         std::string message;
         std::getline(std::cin, message);
 
@@ -73,7 +74,14 @@ int main() {
         message+="\n";  // car la recv à un \n à la fin
         send(clientSock, message.c_str(), message.length(), 0); // envoie des donnes par le socket du client
 
+        // send(clientSock, autoLST.c_str(), autoLST.length(), 0); // lister les nouveaux messages tt le temps
     }
+
+    std::cout << "closing the connection... " << std::endl;
+    close(clientSock);  // on ferme la connection
+    std::cout << "connection closed succes" << std::endl;
+    std::cout << "program terminated" << std::endl;
+
 
     // 0 -> succes
     return 0;
