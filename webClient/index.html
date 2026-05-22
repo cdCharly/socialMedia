@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat C++ / Web</title>
+    <!-- Le lien vers ton fichier CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="chat-container">
+        <h2>Serveur Chat C++</h2>
+        
+        <div id="messages"></div>
+        
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Tapez LOG:nom:mdp ou un MSG:...">
+            <button onclick="envoyerMessage()">Envoyer</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. L'appel au serveur Node.js sur le port 8081
+        const ws = new WebSocket('ws://127.0.0.1:8081');
+
+        // 2. Événement : Quand la connexion est établie
+        ws.onopen = () => {
+            console.log("Connecté au relais WebSocket !");
+            ajouterMessage("Système", "Connecté au relais !", "systeme");
+        };
+
+        // 3. Événement : Quand on reçoit un message
+        ws.onmessage = (event) => {
+            // event.data contient le texte envoyé par ton Node.js
+            ajouterMessage("Serveur", event.data, "recu");
+        };
+
+        // 4. Fonction liée au bouton pour envoyer le texte
+        function envoyerMessage() {
+            const input = document.getElementById('messageInput');
+            const texte = input.value;
+            
+            if (texte.trim() !== '') {
+                ws.send(texte);
+                input.value = ''; // On vide le champ après l'envoi
+            }
+        }
+
+        // Fonction utilitaire pour afficher le texte dans l'écran
+        function ajouterMessage(expediteur, texte, classeCss) {
+            const zoneMessages = document.getElementById('messages');
+            zoneMessages.innerHTML += `<p class="${classeCss}"><strong>${expediteur}:</strong> ${texte}</p>`;
+            zoneMessages.scrollTop = zoneMessages.scrollHeight; // Auto-scroll vers le bas
+        }
+    </script>
+</body>
+</html>
