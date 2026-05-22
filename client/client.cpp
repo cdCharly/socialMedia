@@ -8,7 +8,7 @@
 #include <unistd.h>     // Pour la fonction close() (fermer le socket)
 #include <sqlite3.h>    // gerer db
 #include <arpa/inet.h>  // gerer l'ip avec un string
-#include <thread>   // le multitache
+#include <thread>       // le multitache
 
 
 void listenServer(int socket) {
@@ -17,7 +17,7 @@ void listenServer(int socket) {
         char buffer[1024];
         memset(buffer, 0, sizeof(buffer));
 
-        int bytesReceived = recv(socket, buffer, sizeof(buffer), 0);
+        const ssize_t bytesReceived = recv(socket, buffer, sizeof(buffer), 0);
         if (bytesReceived < 0) {
             std::cout << "\n server disconnection \n" << std::endl;
             break;  // sortir de la boucle
@@ -30,7 +30,7 @@ void listenServer(int socket) {
 // if -1 error
 int main() {
 
-    sockaddr_in serverAddr;                     // adresse du serveur
+    sockaddr_in serverAddr{};                     // adresse du serveur
     serverAddr.sin_family = AF_INET;            // meme type que le serversocket
     inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
     serverAddr.sin_port = htons(8080);          // choix port 8080
