@@ -334,7 +334,7 @@ void gererClient(int clientSocket, sqlite3* db) {
 
                     // DB request
                     char* errREG = nullptr;
-                    string requete = "INSERT INTO User (name, lastName, password) VALUES ('"+ nom + "', '" + pre + "', '" + mdp + "')";
+                    string requete = "INSERT INTO User (name, lastName, password) VALUES ('"+ pre + "', '" + nom + "', '" + mdp + "')";
                     {
                         std::lock_guard<std::mutex> lock(dbMutex);
                         sqlite3_exec(db, requete.c_str(), nullptr, nullptr, &errREG);
