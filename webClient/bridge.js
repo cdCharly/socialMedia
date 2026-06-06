@@ -6,7 +6,7 @@ const client = net.createConnection({ port: 8080 }, () => {
     console.log('Connecté au serveur C++ !');
     
     // On se connecte juste en arrière-plan, mais on ne demande pas l'historique tout de suite
-    client.write('LOG:a:c\n');
+    //client.write('LOG:a:c\n');
 });
 
 client.on('data', (data) => {
@@ -33,7 +33,7 @@ wss.on('connection', (ws) => {
     console.log("Un navigateur s'est connecté au relais !");
 
     // CORRECTION 1 : Dès qu'on ouvre l'onglet web, on demande l'historique !
-    client.write('LST:\n');
+    //client.write('LST:\n');
 
     ws.on('message', (message) => {
         console.log("Web a dit : " + message.toString());
